@@ -378,9 +378,22 @@ with col1:
                     
                     if 'rating' in data:
                         rating_data = data['rating']
-                        rating_kp = safe(rating_data.get('kp'))
+                        # Округляем рейтинг КП до одного знака после запятой
+                        kp_rating = rating_data.get('kp')
+                        if kp_rating and kp_rating != '-' and kp_rating is not None:
+                            try:
+                                rating_kp = str(round(float(kp_rating), 1))
+                            except (ValueError, TypeError):
+                                rating_kp = safe(kp_rating)
+                        else:
+                            rating_kp = '-'
+                        
                         rating_imdb = safe(rating_data.get('imdb'))
-                        votes_kp = format_vote_count(rating_data.get('kpVotes'))
+                    
+                    # Извлекаем количество голосов из votes.kp
+                    if 'votes' in data:
+                        votes_data = data['votes']
+                        votes_kp = format_vote_count(votes_data.get('kp'))
                     
                     # Извлекаем жанры
                     genres = []
