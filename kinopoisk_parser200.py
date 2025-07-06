@@ -17,7 +17,7 @@ API_URL = 'https://api.kinopoisk.dev/v1.4/movie/{}'
 API_URL_STAFF = 'https://api.kinopoisk.dev/v1.4/person/search?query={}'
 API_URL_REVIEWS = 'https://api.kinopoisk.dev/v1.4/review?movieId={}'
 
-# Unofficial API для стаффа
+# Unofficial API для каста
 UNOFFICIAL_API_STAFF = 'https://kinopoiskapiunofficial.tech/api/v1/staff'
 
 def get_headers(api_key):
@@ -440,7 +440,7 @@ with st.sidebar:
     
     # Настройки получения данных
     st.subheader("📊 Настройки данных")
-    use_unofficial_primary = st.checkbox("Приоритет unofficial API для стаффа", value=True, help="Если включено, данные о съемочной группе будут получаться в первую очередь из unofficial API")
+    use_unofficial_primary = st.checkbox("Приоритет unofficial API для каста", value=True, help="Если включено, данные о съемочной группе будут получаться в первую очередь из unofficial API")
     
     if st.button("ℹ️ Как получить API-ключи?"):
         st.info("""
@@ -530,7 +530,7 @@ with col1:
                         'Страна': safe(', '.join(countries) if countries else '-'),
                         'Рейтинг IMDB': safe(rating_imdb),
                         'Рейтинг Кинопоиска': safe(rating_kp),
-                        'Кол-во голосов КП': safe(votes_kp),
+                        'Кол-во оценок КП': safe(votes_kp),
                         'Описание': safe(data.get('description')),
                         'Продолжительность (мин)': format_duration(data.get('movieLength'))
                     }
@@ -539,16 +539,16 @@ with col1:
                     boxoffice = get_film_boxoffice(data)
                     film_info.update({
                         'Бюджет': boxoffice.get('budget', '-'),
-                        'Касса (мир)': boxoffice.get('world', '-'),
-                        'Касса (РФ)': boxoffice.get('russia', '-'),
-                        'Касса (США)': boxoffice.get('usa', '-')
+                        'Сборы в мире': boxoffice.get('world', '-'),
+                        'Сборы в России': boxoffice.get('russia', '-'),
+                        'Сборы в США': boxoffice.get('usa', '-')
                     })
                     
                     # Премьеры
                     premiere_rf, premiere_world = get_film_premieres(data)
                     film_info.update({
-                        'Премьера в РФ': safe(premiere_rf),
-                        'Премьера мировая': safe(premiere_world)
+                        'Премьера в России': safe(premiere_rf),
+                        'Премьера в мире': safe(premiere_world)
                     })
                     
                     # Актеры и съемочная группа
@@ -578,14 +578,14 @@ with col2:
             st.metric("Название (RU)", st.session_state.film_data.get('Название (RU)', '-'))
             st.metric("Год", st.session_state.film_data.get('Год', '-'))
             st.metric("Рейтинг IMDB", st.session_state.film_data.get('Рейтинг IMDB', '-'))
-            st.metric("Премьера в РФ", st.session_state.film_data.get('Премьера в РФ', '-'))
-            st.metric("Премьера мировая", st.session_state.film_data.get('Премьера мировая', '-'))
+            st.metric("Премьера в России", st.session_state.film_data.get('Премьера в России', '-'))
+            st.metric("Премьера в мире", st.session_state.film_data.get('Премьера в мире', '-'))
         
         with col_info2:
             st.metric("Оригинальное название", st.session_state.film_data.get('Оригинальное название', '-'))
             st.metric("Страна", st.session_state.film_data.get('Страна', '-'))
             st.metric("Рейтинг Кинопоиска", st.session_state.film_data.get('Рейтинг Кинопоиска', '-'))
-            st.metric("Кол-во голосов КП", st.session_state.film_data.get('Кол-во голосов КП', '-'))
+            st.metric("Кол-во оценок КП", st.session_state.film_data.get('Кол-во оценок КП', '-'))
             st.metric("Продолжительность (мин)", st.session_state.film_data.get('Продолжительность (мин)', '-'))
         
         # Жанры отдельно на всю ширину
@@ -601,11 +601,11 @@ with col2:
         
         with col_money1:
             st.metric("Бюджет", st.session_state.film_data.get('Бюджет', '-'))
-            st.metric("Касса (мир)", st.session_state.film_data.get('Касса (мир)', '-'))
+            st.metric("Сборы в мире", st.session_state.film_data.get('Сборы в мире', '-'))
         
         with col_money2:
-            st.metric("Касса (РФ)", st.session_state.film_data.get('Касса (РФ)', '-'))
-            st.metric("Касса (США)", st.session_state.film_data.get('Касса (США)', '-'))
+            st.metric("Сборы в России", st.session_state.film_data.get('Сборы в России', '-'))
+            st.metric("Сборы в США", st.session_state.film_data.get('Сборы в США', '-'))
         
         # Актеры и съемочная группа
         st.subheader("🎬 Актеры и съемочная группа")
