@@ -156,9 +156,9 @@ def process_unofficial_staff_data(staff_data):
         
         # Добавляем в список
         if staff_id:
-            cast.append(f"{name_with_role};{staff_id}")
+            cast.append(f"{name};{staff_id}")
         else:
-            cast.append(name_with_role)
+            cast.append(name)
     
     return cast
 
