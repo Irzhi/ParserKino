@@ -427,12 +427,17 @@ st.markdown("Получение информации о фильмах и сер
 with st.sidebar:
     st.header("⚙️ Настройки")
     
-    # Основной API ключ
-    api_key = st.text_input("API-ключ (kinopoisk.dev):", type="password", help="Введите ваш API-ключ от kinopoisk.dev")
-    
-    # Дополнительный API ключ для unofficial API
-    st.subheader("🔧 Дополнительные источники")
-    unofficial_api_key = st.text_input("API-ключ (unofficial):", type="password", help="Введите ваш API-ключ от kinopoiskapiunofficial.tech для более полной информации о съемочной группе")
+   # Основной API ключ
+api_key = st.text_input("API-ключ (kinopoisk.dev):", 
+                       type="password", 
+                       value="MD4HZTA-3QZ4PVN-J8PP4XX-9NJQYFB",
+                       help="Введите ваш API-ключ от kinopoisk.dev")
+
+# Дополнительный API ключ для unofficial API  
+unofficial_api_key = st.text_input("API-ключ (unofficial):", 
+                                  type="password", 
+                                  value="dbdf4ae6-c300-43ec-a20e-ee12baf53f74",
+                                  help="Введите ваш API-ключ от kinopoiskapiunofficial.tech для более полной информации о съемочной группе")
     
     # Настройки получения данных
     st.subheader("📊 Настройки данных")
