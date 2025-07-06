@@ -95,30 +95,40 @@ def get_film_info(film_id, api_key):
         return None, f'Ошибка запроса: {e}'
 
 def get_film_cast(data):
-    """Извлекает информацию о съемочной группе из данных фильма - только имя и ID"""
+    """Извлекает информацию о съемочной группе из данных фильма"""
     cast = []
     
     # Извлекаем персонал из данных фильма
     persons = data.get('persons', [])
     
     for person in persons:
+        # Получаем профессию на русском и английском
+        profession_ru = person.get('profession', '').lower()
+        profession_en = person.get('enProfession', '').lower()
+        
+        # Исключаем монтажеров и художников (можно расширить список)
+        excluded_professions = [
+            'монтажер', 'художник', 'editor', 'artist', 
+            'монтажёр', 'звукорежиссёр', 'звукооператор',
+            'costume designer', 'art director', 'set decorator'
+        ]
+        
+        # Проверяем исключения по обеим профессиям
+        if any(x in profession_ru for x in excluded_professions) or \
+           any(x in profession_en for x in excluded_professions):
+            continue
+        
         # Приоритет: русское имя, затем английское
-        name = person.get('name') or person.get('enName')
+        name = person.get('name') or person.get('enName') or '-'
         person_id = person.get('id')
         
-        # Добавляем только если есть имя
-        if name:
-            # Очищаем имя от лишних символов и пробелов
-            clean_name = name.strip()
-            
-            # Добавляем в список: имя;ID (если есть ID) или просто имя
-            if person_id:
-                cast.append(f"{clean_name};{person_id}")
-            else:
-                cast.append(clean_name)
+        # Добавляем в список
+        if person_id:
+            cast.append(f"{name};{person_id}")
+        else:
+            cast.append(name)
     
     return cast
-
 def get_film_boxoffice(data):
     """Извлекает информацию о кассовых сборах из данных фильма"""
     result = {}
