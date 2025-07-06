@@ -121,17 +121,14 @@ def get_film_cast(data):
         # Приоритет: русское имя, затем английское
         name = person.get('name') or person.get('enName') or '-'
         person_id = person.get('id')
-            
-        name = person.get('name') or person.get('enName') or '-'
-        person_id = person.get('id')
         
+        # Добавляем в список
         if person_id:
             cast.append(f"{name};{person_id}")
         else:
-            cast.append(f"{name}")
+            cast.append(name)
     
     return cast
-
 def get_film_boxoffice(data):
     """Извлекает информацию о кассовых сборах из данных фильма"""
     result = {}
