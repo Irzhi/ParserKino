@@ -4,6 +4,7 @@ import requests
 import json
 from datetime import datetime, timezone
 import io
+import re
 
 # Настройка страницы
 st.set_page_config(
@@ -636,7 +637,14 @@ with col2:
         with col_export1:
             if st.session_state.film_data and st.session_state.cast_data:
                 excel_file = create_excel_file(st.session_state.film_data, st.session_state.cast_data)
-                filename = f"film_{film_id}.xlsx"
+                # Формируем имя файла с названием фильма на русском
+                film_name_ru = st.session_state.film_data.get('Название (RU)', '').strip()
+                # Очищаем от недопустимых символов для имени файла
+                safe_film_name = re.sub(r'[\\/:*?"<>|]', '', film_name_ru)
+                if safe_film_name:
+                    filename = f"film_{film_id}_{safe_film_name}.xlsx"
+                else:
+                    filename = f"film_{film_id}.xlsx"
                 st.download_button(
                     label="📊 Скачать Excel файл",
                     data=excel_file,
@@ -649,7 +657,7 @@ with col2:
             if st.session_state.film_data and st.session_state.cast_data:
                 # CSV для Excel
                 csv_file = create_improved_csv_file(st.session_state.film_data, st.session_state.cast_data)
-                filename_csv = f"film_{film_id}.csv"
+                filename_csv = filename.replace('.xlsx', '.csv')
                 st.download_button(
                     label="📄 CSV (для Excel)",
                     data=csv_file,
@@ -659,7 +667,7 @@ with col2:
                 )
                 # Простой CSV
                 csv_simple_file = create_simple_csv_file(st.session_state.film_data, st.session_state.cast_data)
-                filename_csv_simple = f"film_{film_id}.csv"
+                filename_csv_simple = filename.replace('.xlsx', '.csv')
                 st.download_button(
                     label="📋 CSV (простой)",
                     data=csv_simple_file,
