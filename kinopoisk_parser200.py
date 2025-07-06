@@ -102,10 +102,7 @@ def get_film_cast(data):
     persons = data.get('persons', [])
     
     for person in persons:
-        # Исключаем монтажеров и художников
-        profession = person.get('profession', '').lower()
-        if any(x in profession for x in ['монтажер', 'художник', 'editor', 'artist']):
-            continue
+    
             
         name = person.get('name') or person.get('enName') or '-'
         person_id = person.get('id')
