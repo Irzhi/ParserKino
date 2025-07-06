@@ -102,7 +102,25 @@ def get_film_cast(data):
     persons = data.get('persons', [])
     
     for person in persons:
-    
+        # Получаем профессию на русском и английском
+        profession_ru = person.get('profession', '').lower()
+        profession_en = person.get('enProfession', '').lower()
+        
+        # Исключаем монтажеров и художников (можно расширить список)
+        excluded_professions = [
+            'монтажер', 'художник', 'editor', 'artist', 
+            'монтажёр', 'звукорежиссёр', 'звукооператор',
+            'costume designer', 'art director', 'set decorator'
+        ]
+        
+        # Проверяем исключения по обеим профессиям
+        if any(x in profession_ru for x in excluded_professions) or \
+           any(x in profession_en for x in excluded_professions):
+            continue
+        
+        # Приоритет: русское имя, затем английское
+        name = person.get('name') or person.get('enName') or '-'
+        person_id = person.get('id')
             
         name = person.get('name') or person.get('enName') or '-'
         person_id = person.get('id')
