@@ -12,12 +12,21 @@ st.set_page_config(
     layout="wide"
 )
 
-# API URLs для нового API kinopoisk.dev
+# API URLs
 API_URL = 'https://api.kinopoisk.dev/v1.4/movie/{}'
 API_URL_STAFF = 'https://api.kinopoisk.dev/v1.4/person/search?query={}'
 API_URL_REVIEWS = 'https://api.kinopoisk.dev/v1.4/review?movieId={}'
 
+# Unofficial API для стаффа
+UNOFFICIAL_API_STAFF = 'https://kinopoiskapiunofficial.tech/api/v1/staff'
+
 def get_headers(api_key):
+    return {
+        'X-API-KEY': api_key,
+        'Content-Type': 'application/json',
+    }
+
+def get_unofficial_headers(api_key):
     return {
         'X-API-KEY': api_key,
         'Content-Type': 'application/json',
@@ -94,11 +103,85 @@ def get_film_info(film_id, api_key):
     except Exception as e:
         return None, f'Ошибка запроса: {e}'
 
-def get_film_cast(data):
-    """Извлекает информацию о съемочной группе из данных фильма"""
+def get_staff_from_unofficial_api(film_id, api_key):
+    """Получает данные о съемочной группе из unofficial API"""
+    try:
+        url = f"{UNOFFICIAL_API_STAFF}?filmId={film_id}"
+        response = requests.get(url, headers=get_unofficial_headers(api_key), timeout=10)
+        
+        if response.status_code == 404:
+            return [], f'Данные о съемочной группе для фильма {film_id} не найдены'
+        if response.status_code != 200:
+            return [], f'Ошибка получения данных о съемочной группе: {response.status_code}'
+        
+        staff_data = response.json()
+        return staff_data, None
+        
+    except Exception as e:
+        return [], f'Ошибка при получении данных о съемочной группе: {e}'
+
+def process_unofficial_staff_data(staff_data):
+    """Обрабатывает данные о съемочной группе из unofficial API"""
     cast = []
     
-    # Извлекаем персонал из данных фильма
+    # Исключаемые профессии
+    excluded_professions = [
+        'монтажер', 'художник', 'editor', 'artist', 
+        'монтажёр', 'звукорежиссёр', 'звукооператор',
+        'costume designer', 'art director', 'set decorator',
+        'EDITOR', 'DESIGN', 'PRODUCER_USSR'  # Добавляем ключи профессий
+    ]
+    
+    for person in staff_data:
+        # Получаем ключ профессии
+        profession_key = person.get('professionKey', '').upper()
+        profession_text = person.get('professionText', '').lower()
+        
+        # Проверяем исключения
+        if profession_key in excluded_professions:
+            continue
+        if any(x in profession_text for x in excluded_professions):
+            continue
+        
+        # Получаем имя (приоритет русскому)
+        name_ru = person.get('nameRu', '').strip()
+        name_en = person.get('nameEn', '').strip()
+        name = name_ru if name_ru else name_en
+        
+        if not name:
+            continue
+        
+        # Получаем ID
+        staff_id = person.get('staffId')
+        
+        # Получаем описание роли (если есть)
+        description = person.get('description')
+        if description:
+            name_with_role = f"{name} ({description})"
+        else:
+            name_with_role = name
+        
+        # Добавляем в список
+        if staff_id:
+            cast.append(f"{name_with_role};{staff_id}")
+        else:
+            cast.append(name_with_role)
+    
+    return cast
+
+def get_film_cast(data, film_id, unofficial_api_key):
+    """Извлекает информацию о съемочной группе"""
+    cast = []
+    
+    # Сначала пробуем получить данные из unofficial API
+    if unofficial_api_key:
+        staff_data, error = get_staff_from_unofficial_api(film_id, unofficial_api_key)
+        if staff_data and not error:
+            cast = process_unofficial_staff_data(staff_data)
+            if cast:  # Если получили данные из unofficial API, возвращаем их
+                return cast, "Данные получены из Unofficial API"
+    
+    # Если не получилось из unofficial API, используем основной API
     persons = data.get('persons', [])
     
     for person in persons:
@@ -106,14 +189,13 @@ def get_film_cast(data):
         profession_ru = person.get('profession', '').lower()
         profession_en = person.get('enProfession', '').lower()
         
-        # Исключаем монтажеров и художников (можно расширить список)
+        # Исключаем монтажеров и художников
         excluded_professions = [
             'монтажер', 'художник', 'editor', 'artist', 
             'монтажёр', 'звукорежиссёр', 'звукооператор',
             'costume designer', 'art director', 'set decorator'
         ]
         
-        # Проверяем исключения по обеим профессиям
         if any(x in profession_ru for x in excluded_professions) or \
            any(x in profession_en for x in excluded_professions):
             continue
@@ -128,7 +210,8 @@ def get_film_cast(data):
         else:
             cast.append(name)
     
-    return cast
+    return cast, "Данные получены из основного API"
+
 def get_film_boxoffice(data):
     """Извлекает информацию о кассовых сборах из данных фильма"""
     result = {}
@@ -340,6 +423,8 @@ if 'film_data' not in st.session_state:
     st.session_state.film_data = {}
 if 'cast_data' not in st.session_state:
     st.session_state.cast_data = []
+if 'data_source' not in st.session_state:
+    st.session_state.data_source = ""
 
 # Заголовок
 st.title("🎬 Кинопоиск Парсер")
@@ -348,15 +433,29 @@ st.markdown("Получение информации о фильмах и сер
 # Боковая панель для настроек
 with st.sidebar:
     st.header("⚙️ Настройки")
-    api_key = st.text_input("API-ключ:", type="password", help="Введите ваш API-ключ от kinopoisk.dev")
     
-    if st.button("ℹ️ Как получить API-ключ?"):
+    # Основной API ключ
+    api_key = st.text_input("API-ключ (kinopoisk.dev):", type="password", help="Введите ваш API-ключ от kinopoisk.dev")
+    
+    # Дополнительный API ключ для unofficial API
+    st.subheader("🔧 Дополнительные источники")
+    unofficial_api_key = st.text_input("API-ключ (unofficial):", type="password", help="Введите ваш API-ключ от kinopoiskapiunofficial.tech для более полной информации о съемочной группе")
+    
+    # Настройки получения данных
+    st.subheader("📊 Настройки данных")
+    use_unofficial_primary = st.checkbox("Приоритет unofficial API для стаффа", value=True, help="Если включено, данные о съемочной группе будут получаться в первую очередь из unofficial API")
+    
+    if st.button("ℹ️ Как получить API-ключи?"):
         st.info("""
+        **Основной API (kinopoisk.dev):**
         1. Зарегистрируйтесь на kinopoisk.dev
         2. Получите бесплатный API-ключ
-        3. Вставьте его в поле выше
         
-        Новый API предоставляет более полные данные!
+        **Unofficial API (kinopoiskapiunofficial.tech):**
+        1. Зарегистрируйтесь на kinopoiskapiunofficial.tech
+        2. Получите API-ключ для более детальной информации о съемочной группе
+        
+        Unofficial API предоставляет более подробную информацию о ролях актеров!
         """)
 
 # Основной интерфейс
@@ -368,7 +467,7 @@ with col1:
     
     if st.button("🎯 Получить информацию", type="primary"):
         if not api_key:
-            st.error("⚠️ Введите API-ключ в боковой панели!")
+            st.error("⚠️ Введите основной API-ключ в боковой панели!")
         elif not film_id.isdigit():
             st.error("⚠️ Введите корректный числовой ID!")
         else:
@@ -456,10 +555,11 @@ with col1:
                     })
                     
                     # Актеры и съемочная группа
-                    cast = get_film_cast(data)
+                    cast, data_source = get_film_cast(data, film_id, unofficial_api_key if use_unofficial_primary else None)
                     
                     st.session_state.film_data = film_info
                     st.session_state.cast_data = cast
+                    st.session_state.data_source = data_source
                     
                     st.success("✅ Данные успешно загружены!")
 
@@ -467,6 +567,10 @@ with col2:
     st.header("📊 Результаты")
     
     if st.session_state.film_data:
+        # Показываем источник данных о съемочной группе
+        if st.session_state.data_source:
+            st.info(f"ℹ️ {st.session_state.data_source}")
+        
         # Основная информация
         st.subheader("🎭 Основная информация")
         
