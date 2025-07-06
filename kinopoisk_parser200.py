@@ -635,28 +635,16 @@ with col2:
         col_export1, col_export2 = st.columns(2)
         
         with col_export1:
-            if st.button("📊 Скачать Excel файл"):
-                try:
-                    with st.spinner("Создание Excel файла..."):
-                        excel_file = create_excel_file(st.session_state.film_data, st.session_state.cast_data)
-                        
-                        if excel_file:
-                            filename = f"film_{film_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-                            
-                            st.download_button(
-                                label="⬇️ Скачать Excel",
-                                data=excel_file,
-                                file_name=filename,
-                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                key="excel_download"
-                            )
-                            st.success("Excel файл готов к скачиванию!")
-                        else:
-                            st.error("Не удалось создать Excel файл")
-                            
-                except Exception as e:
-                    st.error(f"Ошибка при создании Excel файла: {e}")
-                    st.info("Попробуйте скачать CSV файл")
+            if st.session_state.film_data and st.session_state.cast_data:
+                excel_file = create_excel_file(st.session_state.film_data, st.session_state.cast_data)
+                filename = f"film_{film_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+                st.download_button(
+                    label="📊 Скачать Excel файл",
+                    data=excel_file,
+                    file_name=filename,
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key="excel_download"
+                )
         
         with col_export2:
             # Создаем два варианта CSV
