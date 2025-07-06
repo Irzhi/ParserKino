@@ -154,13 +154,6 @@ def process_unofficial_staff_data(staff_data):
         # Получаем ID
         staff_id = person.get('staffId')
         
-        # Получаем описание роли (если есть)
-        description = person.get('description')
-        if description:
-            name_with_role = f"{name} ({description})"
-        else:
-            name_with_role = name
-        
         # Добавляем в список
         if staff_id:
             cast.append(f"{name_with_role};{staff_id}")
