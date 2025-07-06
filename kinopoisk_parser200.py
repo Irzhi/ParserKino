@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import requests
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 import io
 
 # Настройка страницы
@@ -427,17 +427,17 @@ st.markdown("Получение информации о фильмах и сер
 with st.sidebar:
     st.header("⚙️ Настройки")
     
-    # Основной API ключ
-    api_key = st.text_input("API-ключ (kinopoisk.dev):", 
-                           type="password", 
-                           value="MD4HZTA-3QZ4PVN-J8PP4XX-9NJQYFB",
-                           help="Введите ваш API-ключ от kinopoisk.dev")
+   # Основной API ключ
+api_key = st.text_input("API-ключ (kinopoisk.dev):", 
+                       type="password", 
+                       value="MD4HZTA-3QZ4PVN-J8PP4XX-9NJQYFB",
+                       help="Введите ваш API-ключ от kinopoisk.dev")
 
-    # Дополнительный API ключ для unofficial API  
-    unofficial_api_key = st.text_input("API-ключ (unofficial):", 
-                                      type="password", 
-                                      value="dbdf4ae6-c300-43ec-a20e-ee12baf53f74",
-                                      help="Введите ваш API-ключ от kinopoiskapiunofficial.tech для более полной информации о съемочной группе")
+# Дополнительный API ключ для unofficial API  
+unofficial_api_key = st.text_input("API-ключ (unofficial):", 
+                                  type="password", 
+                                  value="dbdf4ae6-c300-43ec-a20e-ee12baf53f74",
+                                  help="Введите ваш API-ключ от kinopoiskapiunofficial.tech для более полной информации о съемочной группе")
     
     # Настройки получения данных
     st.subheader("📊 Настройки данных")
@@ -637,7 +637,7 @@ with col2:
         with col_export1:
             if st.session_state.film_data and st.session_state.cast_data:
                 excel_file = create_excel_file(st.session_state.film_data, st.session_state.cast_data)
-                filename = f"film_{film_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+                filename = f"film_{film_id}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_UTC.xlsx"
                 st.download_button(
                     label="📊 Скачать Excel файл",
                     data=excel_file,
@@ -650,7 +650,7 @@ with col2:
             if st.session_state.film_data and st.session_state.cast_data:
                 # CSV для Excel
                 csv_file = create_improved_csv_file(st.session_state.film_data, st.session_state.cast_data)
-                filename_csv = f"film_{film_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+                filename_csv = f"film_{film_id}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_UTC.csv"
                 st.download_button(
                     label="📄 CSV (для Excel)",
                     data=csv_file,
@@ -660,7 +660,7 @@ with col2:
                 )
                 # Простой CSV
                 csv_simple_file = create_simple_csv_file(st.session_state.film_data, st.session_state.cast_data)
-                filename_csv_simple = f"film_{film_id}_simple_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+                filename_csv_simple = f"film_{film_id}_simple_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_UTC.csv"
                 st.download_button(
                     label="📋 CSV (простой)",
                     data=csv_simple_file,
