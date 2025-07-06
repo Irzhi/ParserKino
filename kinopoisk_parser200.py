@@ -647,54 +647,27 @@ with col2:
                 )
         
         with col_export2:
-            # Создаем два варианта CSV
-            csv_col1, csv_col2 = st.columns(2)
-            
-            with csv_col1:
-                if st.button("📄 CSV (для Excel)"):
-                    try:
-                        with st.spinner("Создание CSV файла..."):
-                            csv_file = create_improved_csv_file(st.session_state.film_data, st.session_state.cast_data)
-                            
-                            if csv_file:
-                                filename = f"film_{film_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-                                
-                                st.download_button(
-                                    label="⬇️ Скачать CSV",
-                                    data=csv_file,
-                                    file_name=filename,
-                                    mime="text/csv",
-                                    key="csv_download_1"
-                                )
-                                st.success("CSV файл готов к скачиванию!")
-                            else:
-                                st.error("Не удалось создать CSV файл")
-                                
-                    except Exception as e:
-                        st.error(f"Ошибка при создании CSV файла: {e}")
-            
-            with csv_col2:
-                if st.button("📋 CSV (простой)"):
-                    try:
-                        with st.spinner("Создание простого CSV файла..."):
-                            csv_file = create_simple_csv_file(st.session_state.film_data, st.session_state.cast_data)
-                            
-                            if csv_file:
-                                filename = f"film_{film_id}_simple_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-                                
-                                st.download_button(
-                                    label="⬇️ Скачать CSV",
-                                    data=csv_file,
-                                    file_name=filename,
-                                    mime="text/csv",
-                                    key="csv_download_2"
-                                )
-                                st.success("Простой CSV файл готов к скачиванию!")
-                            else:
-                                st.error("Не удалось создать простой CSV файл")
-                                
-                    except Exception as e:
-                        st.error(f"Ошибка при создании простого CSV файла: {e}")
+            if st.session_state.film_data and st.session_state.cast_data:
+                # CSV для Excel
+                csv_file = create_improved_csv_file(st.session_state.film_data, st.session_state.cast_data)
+                filename_csv = f"film_{film_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+                st.download_button(
+                    label="📄 CSV (для Excel)",
+                    data=csv_file,
+                    file_name=filename_csv,
+                    mime="text/csv",
+                    key="csv_download_1"
+                )
+                # Простой CSV
+                csv_simple_file = create_simple_csv_file(st.session_state.film_data, st.session_state.cast_data)
+                filename_csv_simple = f"film_{film_id}_simple_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+                st.download_button(
+                    label="📋 CSV (простой)",
+                    data=csv_simple_file,
+                    file_name=filename_csv_simple,
+                    mime="text/csv",
+                    key="csv_download_2"
+                )
         
         # Дополнительные советы по экспорту
         with st.expander("💡 Советы по экспорту"):
