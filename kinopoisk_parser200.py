@@ -163,48 +163,97 @@ def process_unofficial_staff_data(staff_data):
     
     return cast
 
+def process_unofficial_staff_data_by_professions(staff_data):
+    """
+    Обрабатывает данные о съемочной группе из unofficial API,
+    возвращая только нужные профессии в нужном порядке.
+    Порядок: Режиссер, Актеры, Продюсеры, Сценаристы, Оператор, Композитор
+    """
+    # Ключи профессий в нужном порядке
+    profession_order = [
+        ("director", "Режиссер"),
+        ("actor", "Актеры"),
+        ("producer", "Продюсеры"),
+        ("writer", "Сценаристы"),
+        ("operator", "Оператор"),
+        ("composer", "Композитор"),
+    ]
+    # Собираем по ключу
+    result = {key: [] for key, _ in profession_order}
+    for person in staff_data:
+        profession_key = (person.get('professionKey') or '').lower()
+        if profession_key in result:
+            name_ru = (person.get('nameRu') or '').strip()
+            name_en = (person.get('nameEn') or '').strip()
+            name = name_ru if name_ru else name_en
+            if not name:
+                continue
+            staff_id = person.get('staffId')
+            if staff_id:
+                result[profession_key].append(f"{name};{staff_id}")
+            else:
+                result[profession_key].append(name)
+    # Собираем итоговый список в нужном порядке
+    ordered_cast = []
+    for key, _ in profession_order:
+        ordered_cast.extend(result[key])
+    return ordered_cast
+
+
 def get_film_cast(data, film_id, unofficial_api_key):
-    """Извлекает информацию о съемочной группе"""
-    cast = []
-    
-    # Сначала пробуем получить данные из unofficial API
+    """
+    Извлекает информацию о съемочной группе:
+    - режиссер, актеры, продюсеры, сценаристы, оператор, композитор — из unofficial API
+    - актеры дубляжа — только из основного API (kinopoisk.dev)
+    Итоговый список: режиссер, актеры, продюсеры, актеры дубляжа, сценаристы, оператор, композитор
+    """
+    cast_director_actor_producer_writer_operator_composer = []
+    cast_voice_actors = []
+    data_source = []
+
+    # 1. Получаем staff из unofficial API
     if unofficial_api_key:
         staff_data, error = get_staff_from_unofficial_api(film_id, unofficial_api_key)
         if staff_data and not error:
-            cast = process_unofficial_staff_data(staff_data)
-            if cast:  # Если получили данные из unofficial API, возвращаем их
-                return cast, "Данные получены из Unofficial API"
-    
-    # Если не получилось из unofficial API, используем основной API
+            cast_director_actor_producer_writer_operator_composer = process_unofficial_staff_data_by_professions(staff_data)
+            data_source.append("Unofficial API: режиссер, актеры, продюсеры, сценаристы, оператор, композитор")
+
+    # 2. Получаем только актеров дубляжа из основного API
     persons = data.get('persons', [])
-    
     for person in persons:
-        # Получаем профессию на русском и английском
-        profession_ru = person.get('profession', '').lower()
-        profession_en = person.get('enProfession', '').lower()
-        
-        # Исключаем монтажеров и художников
-        excluded_professions = [
-            'монтажер', 'художник', 'editor', 'artist', 
-            'монтажёр', 'звукорежиссёр', 'звукооператор',
-            'costume designer', 'art director', 'set decorator'
-        ]
-        
-        if any(x in profession_ru for x in excluded_professions) or \
-           any(x in profession_en for x in excluded_professions):
-            continue
-        
-        # Приоритет: русское имя, затем английское
-        name = person.get('name') or person.get('enName') or '-'
-        person_id = person.get('id')
-        
-        # Добавляем в список
-        if person_id:
-            cast.append(f"{name};{person_id}")
-        else:
-            cast.append(name)
-    
-    return cast, "Данные получены из основного API"
+        profession_ru = (person.get('profession') or '').strip().lower()
+        if profession_ru == 'актеры дубляжа':
+            name = person.get('name') or person.get('enName') or '-'
+            person_id = person.get('id')
+            if person_id:
+                cast_voice_actors.append(f"{name};{person_id}")
+            else:
+                cast_voice_actors.append(name)
+    if cast_voice_actors:
+        data_source.append("kinopoisk.dev: актеры дубляжа")
+
+    # 3. Собираем итоговый список в нужном порядке
+    # Порядок: режиссер, актеры, продюсеры, актеры дубляжа, сценаристы, оператор, композитор
+    # В cast_director_actor_producer_writer_operator_composer уже нужный порядок, просто вставляем актеров дубляжа после продюсеров
+    # Определяем индексы для вставки
+    profession_order = ["director", "actor", "producer", "writer", "operator", "composer"]
+    # Считаем, сколько персон в первых трёх категориях (режиссер, актеры, продюсеры)
+    staff_data = []
+    if unofficial_api_key:
+        staff_data, _ = get_staff_from_unofficial_api(film_id, unofficial_api_key)
+    counts = {k: 0 for k in profession_order}
+    for person in (staff_data or []):
+        profession_key = (person.get('professionKey') or '').lower()
+        if profession_key in counts:
+            counts[profession_key] += 1
+    insert_index = counts["director"] + counts["actor"] + counts["producer"]
+    # Вставляем актеров дубляжа после продюсеров
+    cast = (
+        cast_director_actor_producer_writer_operator_composer[:insert_index]
+        + cast_voice_actors
+        + cast_director_actor_producer_writer_operator_composer[insert_index:]
+    )
+    return cast, ", ".join(data_source) if data_source else "Нет данных о касте"
 
 def get_film_boxoffice(data):
     """Извлекает информацию о кассовых сборах из данных фильма"""
